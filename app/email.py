@@ -18,7 +18,7 @@ class EmailSchema(BaseModel):
 
 class Email:
     def __init__(self, user: models.User, url: str, email: List[EmailStr]):
-        self.name = user.name
+        self.username = user.username
         self.sender = 'MRXAZK <admin@admin.com>'
         self.email = email
         self.url = url
@@ -41,7 +41,7 @@ class Email:
 
         html = template.render(
             url=self.url,
-            first_name=self.name,
+            first_name=self.username,
             subject=subject
         )
 
@@ -62,4 +62,3 @@ class Email:
 
     async def sendPasswordResetCode(self):
         await self.send_mail('Reset your password', 'resetpassword')
-

@@ -27,15 +27,22 @@ REFRESH_TOKEN_EXPIRES_IN = settings.REFRESH_TOKEN_EXPIRES_IN
 
 # Storing the access token and refresh token expiration durations in variables
 
+
 @router.post('/register', status_code=status.HTTP_201_CREATED)
 async def create_user(payload: schemas.CreateUserSchema, request: Request, db: Session = Depends(get_db)):
-    # Check if user already exist
+    # Check if user or username already exist
     user_query = db.query(models.User).filter(
         models.User.email == EmailStr(payload.email.lower()))
     user = user_query.first()
     if user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
-                            detail='Account already exist')
+                            detail='Email already exist')
+    username_query = db.query(models.User).filter(
+        models.User.username == payload.username)
+    username = username_query.first()
+    if username:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail='Username already exist')
     # Compare password and passwordConfirm
     if payload.password != payload.passwordConfirm:
         raise HTTPException(
@@ -65,7 +72,7 @@ async def create_user(payload: schemas.CreateUserSchema, request: Request, db: S
     except Exception as error:
         print('Error', error)
         user_query.update(
-            {'verified': True,'verification_code': None}, synchronize_session=False)
+            {'verified': True, 'verification_code': None}, synchronize_session=False)
         db.commit()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail='There was an error sending email')
@@ -111,6 +118,8 @@ def login(payload: schemas.LoginUserSchema, response: Response, db: Session = De
     return {'status': 'success', 'access_token': access_token}
 
 # User email verification endpoint
+
+
 @router.get('/verifyemail/{token}')
 def verify_email(token: str, db: Session = Depends(get_db)):
     # Check if the token is correct
@@ -125,8 +134,6 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     user.verified = True
     db.commit()
     return {'status': 'success', 'message': 'Email verified'}
-
-
 
 
 @router.get('/refresh')
@@ -159,7 +166,6 @@ def refresh_token(response: Response, request: Request, Authorize: AuthJWT = Dep
     return {'access_token': access_token}
 
 
-
 @router.post('/resetpasswordrequest')
 async def reset_password_request(payload: schemas.ResetPasswordRequestSchema, request: Request, db: Session = Depends(get_db)):
     # Check if the user exist
@@ -181,7 +187,8 @@ async def reset_password_request(payload: schemas.ResetPasswordRequestSchema, re
         hashedCode.update(token)
         password_reset_code = hashedCode.hexdigest()
         user.password_reset_code = password_reset_code
-        user.password_reset_code_expiry = datetime.datetime.utcnow() + timedelta(minutes=30)
+        user.password_reset_code_expiry = datetime.datetime.utcnow() + \
+            timedelta(minutes=30)
         db.commit()
         # url = f"{request.url.scheme}://{request.client.host}:{request.url.port}/api/auth/resetpassword/{token.hex()}"
         url = token.hex()
@@ -238,7 +245,6 @@ def reset_password(token: str, payload: schemas.ResetPasswordSchema, db: Session
     return {'status': 'success', 'message': 'Password successfully reset'}
 
 
-
 @router.post('/changepassword')
 def change_password(payload: schemas.ChangePasswordSchema, response: Response, db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
     user_id = require_user(db, Authorize)
@@ -264,10 +270,11 @@ def change_password(payload: schemas.ChangePasswordSchema, response: Response, d
 
     # Update the user's password in the database
     user.password = payload.newPassword
-    
+
     db.commit()
 
     return {'status': 'success', 'message': 'Password successfully changed'}
+
 
 @router.get('/logout', status_code=status.HTTP_200_OK)
 def logout(response: Response, Authorize: AuthJWT = Depends(), user_id: str = Depends(oauth2.require_user)):
@@ -275,4 +282,3 @@ def logout(response: Response, Authorize: AuthJWT = Depends(), user_id: str = De
     response.set_cookie('logged_in', '', -1)
 
     return {'status': 'success'}
-
