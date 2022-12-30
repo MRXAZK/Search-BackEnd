@@ -1,14 +1,30 @@
-version: '3'
+version: "3"
 services:
   postgres:
     image: postgres
     container_name: postgres
     ports:
-      - '6500:5432'
+      - "6500:5432"
     restart: always
     env_file:
       - ./.env
     volumes:
       - postgres-db:/var/lib/postgresql/data
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    env_file:
+      - ./.env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+    volumes:
+      - mongo:/data/db
+    ports:
+      - "6000:27017"
+
 volumes:
   postgres-db:
+  mongo:

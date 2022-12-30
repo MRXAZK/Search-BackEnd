@@ -1,3 +1,4 @@
+# models.py
 import uuid
 from .database import Base
 from sqlalchemy import TIMESTAMP, Column, String, Boolean, text
