@@ -1,6 +1,9 @@
 # routes/user.py
 
-from fastapi import APIRouter, Depends
+import base64
+from io import BytesIO
+from fastapi import APIRouter, Depends, UploadFile, HTTPException, File
+from bson import ObjectId
 from ..database import get_db
 from sqlalchemy.orm import Session
 from .. import models, schemas, oauth2
