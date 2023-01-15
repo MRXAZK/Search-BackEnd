@@ -1,3 +1,4 @@
+# routes/ocr.py
 from fastapi import APIRouter, UploadFile, Depends
 from fastapi.responses import JSONResponse
 from typing import List
@@ -16,7 +17,7 @@ ocr = APIRouter()
 client = pymongo.MongoClient(
     f"mongodb://{settings.MONGO_INITDB_ROOT_USERNAME}:{settings.MONGO_INITDB_ROOT_PASSWORD}@localhost:{settings.MONGO_INITDB_PORT}/{settings.MONGO_INITDB_DATABASE}?authSource=admin")
 db = client[settings.MONGO_INITDB_DATABASE]
-collection = db["ocr"]
+collection = db[f"{settings.MONGO_INITDB_COLLECTION}"]
 
 
 def read_img(img):

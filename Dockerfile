@@ -1,11 +1,16 @@
 FROM python:3.11
 
-WORKDIR /usr/src/app
+# Set the working directory
+WORKDIR /app
 
-COPY requirements.txt ./
+# Copy the requirements.txt file to the container
+COPY requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+# Install the dependencies
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
+# Copy the rest of the application files
 COPY . .
 
-CMD ["uvicorn","app.main:app","--host","0.0.0.0","--port","8000"]
+# Run the command to start the server
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
