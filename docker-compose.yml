@@ -1,24 +1,11 @@
 version: "3.8"
 
 services:
-  app:
-    build: .
-    container_name: app
-    ports:
-      - "8000:8000"
-    volumes:
-      - .:/app
-    depends_on:
-      - postgres
-      - mongo
-    env_file:
-      - ./.env
-
   postgres:
     image: postgres
     container_name: postgres
     ports:
-      - "6500:5432"
+      - "6700:5432"
     restart: always
     env_file:
       - ./.env
@@ -27,7 +14,7 @@ services:
 
   mongo:
     image: mongo:latest
-    container_name: mongo
+    container_name: mongo2
     restart: always
     env_file:
       - ./.env
@@ -38,7 +25,7 @@ services:
     volumes:
       - mongo:/data/db
     ports:
-      - "6000:27017"
+      - "6100:27017"
 
 volumes:
   postgres-db:
