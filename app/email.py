@@ -1,8 +1,7 @@
-# email.py
+#email.py
 from typing import List
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from pydantic import EmailStr, BaseModel
-from . import models
 from .config import settings
 from jinja2 import Environment, select_autoescape, PackageLoader
 
@@ -16,15 +15,15 @@ env = Environment(
 class EmailSchema(BaseModel):
     email: List[EmailStr]
 
-
 class Email:
-    def __init__(self, user: models.User, url: str, email: List[EmailStr]):
-        self.username = user.username
-        self.sender = 'MRXAZK <admin@admin.com>'
+    def __init__(self, user: dict, url: str, email: List[EmailStr]):
+        self.name = user['username']
+        self.sender = 'admin@admin.com'
         self.email = email
         self.url = url
+        pass
 
-    async def send_mail(self, subject: str, template: str):
+    async def sendMail(self, subject, template):
         # Define the config
         conf = ConnectionConfig(
             MAIL_USERNAME=settings.EMAIL_USERNAME,
@@ -37,12 +36,12 @@ class Email:
             USE_CREDENTIALS=True,
             VALIDATE_CERTS=True
         )
-        # Generate the HTML template based on the template name
+        # Generate the HTML template base on the template name
         template = env.get_template(f'{template}.html')
 
         html = template.render(
             url=self.url,
-            first_name=self.username,
+            first_name=self.name,
             subject=subject
         )
 
@@ -59,7 +58,7 @@ class Email:
         await fm.send_message(message)
 
     async def sendVerificationCode(self):
-        await self.send_mail('Your verification code (Valid for 10min)', 'verification')
-
+        await self.sendMail('Your verification code (Valid for 10min)', 'verification')
+    
     async def sendPasswordResetCode(self):
-        await self.send_mail('Reset your password', 'resetpassword')
+        await self.sendMail('Reset your password', 'resetpassword')

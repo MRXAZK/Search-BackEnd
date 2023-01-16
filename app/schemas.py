@@ -1,14 +1,14 @@
-# schemas.py
-import uuid
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, constr
 
 
 class UserBaseSchema(BaseModel):
     username: str
-    full_name: str
     email: EmailStr
     photo: str
+    role: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     class Config:
         orm_mode = True
@@ -17,7 +17,6 @@ class UserBaseSchema(BaseModel):
 class CreateUserSchema(UserBaseSchema):
     password: constr(min_length=8)
     passwordConfirm: str
-    role: str = 'user'
     verified: bool = False
 
 
@@ -26,25 +25,21 @@ class LoginUserSchema(BaseModel):
     password: constr(min_length=8)
 
 
-class UserResponse(UserBaseSchema):
-    id: uuid.UUID
-    created_at: datetime
-    updated_at: datetime
-
-
-class FilteredUserResponse(UserBaseSchema):
+class UserResponseSchema(UserBaseSchema):
+    id: str
     pass
 
 
+class UserResponse(BaseModel):
+    status: str
+    user: UserResponseSchema
+    
 class ResetPasswordRequestSchema(BaseModel):
     email: EmailStr
 
-
 class ResetPasswordSchema(BaseModel):
-    passwordResetCode: str
     password: constr(min_length=8)
     passwordConfirm: constr(min_length=8)
-
 
 class ChangePasswordSchema(BaseModel):
     currentPassword: constr(min_length=8)

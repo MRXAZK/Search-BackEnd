@@ -1,16 +1,5 @@
 version: "3"
 services:
-  postgres:
-    image: postgres
-    container_name: postgres
-    ports:
-      - "6500:5432"
-    restart: always
-    env_file:
-      - ./.env
-    volumes:
-      - postgres-db:/var/lib/postgresql/data
-
   mongo:
     image: mongo:latest
     container_name: mongo
@@ -26,5 +15,4 @@ services:
       - "6000:27017"
 
 volumes:
-  postgres-db:
   mongo:

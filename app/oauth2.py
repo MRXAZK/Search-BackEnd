@@ -1,13 +1,13 @@
-# outh2.py
 import base64
 from typing import List
 from fastapi import Depends, HTTPException, status
 from fastapi_jwt_auth import AuthJWT
 from pydantic import BaseModel
+from bson import ObjectId
 
-from . import models
-from .database import get_db
-from sqlalchemy.orm import Session
+from app.serializers.userSerializers import userEntity
+
+from .database import User
 from .config import settings
 
 
@@ -37,16 +37,16 @@ class UserNotFound(Exception):
     pass
 
 
-def require_user(db: Session = Depends(get_db), Authorize: AuthJWT = Depends()):
+def require_user(Authorize: AuthJWT = Depends()):
     try:
         Authorize.jwt_required()
         user_id = Authorize.get_jwt_subject()
-        user = db.query(models.User).filter(models.User.id == user_id).first()
+        user = userEntity(User.find_one({'_id': ObjectId(str(user_id))}))
 
         if not user:
             raise UserNotFound('User no longer exist')
 
-        if not user.verified:
+        if not user["verified"]:
             raise NotVerified('You are not verified')
 
     except Exception as e:
