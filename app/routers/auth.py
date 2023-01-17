@@ -16,6 +16,7 @@ router = APIRouter()
 ACCESS_TOKEN_EXPIRES_IN = settings.ACCESS_TOKEN_EXPIRES_IN
 REFRESH_TOKEN_EXPIRES_IN = settings.REFRESH_TOKEN_EXPIRES_IN
 
+
 @router.post('/register', status_code=status.HTTP_201_CREATED)
 async def create_user(payload: schemas.CreateUserSchema, request: Request):
     # Check if user or username already exist
@@ -45,7 +46,7 @@ async def create_user(payload: schemas.CreateUserSchema, request: Request):
         hashedCode.update(token)
         verification_code = hashedCode.hexdigest()
         User.find_one_and_update({"_id": result.inserted_id}, {
-            "$set": {"verification_code": verification_code, "updated_at": datetime.utcnow()}})
+            "$set": {"verification_code": verification_code, "verification_expiration": datetime.utcnow() + timedelta(days=3), "updated_at": datetime.utcnow()}})
 
         url = f"{request.url.scheme}://{request.client.host}:{request.url.port}/api/auth/verifyemail/{token.hex()}"
         await Email(userEntity(new_user), url, [EmailStr(payload.email)]).sendVerificationCode()
@@ -105,6 +106,13 @@ def login(payload: schemas.LoginUserSchema, request: Request, response: Response
 
 @router.get('/verifyemail/{token}')
 def verify_email(token: str):
+    try:
+        # Check if token is a hexadecimal
+        bytes.fromhex(token)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail='Invalid token')
+    
     hashedCode = hashlib.sha256()
     hashedCode.update(bytes.fromhex(token))
     verification_code = hashedCode.hexdigest()
@@ -113,9 +121,14 @@ def verify_email(token: str):
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail='Verification code not found')
+    
+    # Check if token is expired
+    if user["verification_expiration"] < datetime.utcnow():
+        raise HTTPException(status_code=status.HTTP_410_GONE,
+                            detail='Token expired')
 
     User.find_one_and_update({"_id": user['_id']}, {
-        "$set": {"verified": True, "updated_at": datetime.utcnow(), "verification_code": None}})
+        "$set": {"verified": True, "updated_at": datetime.utcnow()}, "$unset": {"verification_code": "", "verification_expiration": ""}})
 
     return {'status': 'success', 'message': 'Email successfully verified'}
 
@@ -130,8 +143,9 @@ async def reset_password_request(payload: schemas.ResetPasswordRequestSchema, re
         hashedCode = hashlib.sha256()
         hashedCode.update(token)
         password_reset_code = hashedCode.hexdigest()
+        password_expiration_days = 3
         User.find_one_and_update({'_id': user['_id']}, {
-            "$set": {"password_reset_code": password_reset_code, "updated_at": datetime.utcnow()}})
+            "$set": {"password_reset_code": password_reset_code, "password_expiration": datetime.utcnow() + timedelta(days=password_expiration_days),"updated_at": datetime.utcnow()}})
         url = token.hex()
         await Email(userEntity(user), url, [EmailStr(payload.email)]).sendPasswordResetCode()
     except Exception as error:
@@ -158,13 +172,21 @@ async def reset_password_confirm(token: str, payload: schemas.ResetPasswordSchem
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password and password confirmation do not match.")
 
+    if user['password_expiration'] < datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password reset code expired.")
+    
     hashed_password = utils.hash_password(payload.password)
     User.find_one_and_update(
         {"_id": user["_id"]},
         {
+            "$unset": {
+                "password_reset_code": "",
+                "password_expiration": ""
+            },
             "$set": {
                 "password": hashed_password,
-                "password_reset_code": None,
                 "updated_at": datetime.utcnow()
             }
         }
