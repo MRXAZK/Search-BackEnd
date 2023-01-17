@@ -25,7 +25,7 @@ async def dashboard(user_id: int = Depends(oauth2.require_user)):
         for item in doc["data"]:
             date_upload.append(
                 item["timestamp"].strftime("%Y-%m-%d %H:%M:%S"))
-            data_count = len(item)
+        data_count = len(doc["data"])
         if data_count == 0:
             date_upload = None
     return JSONResponse(content={"username": username, "total_data": data_count, "date_upload": date_upload})
