@@ -3,3 +3,5 @@ venv/
 .env
 # .env
 __init__.py
+private_key.pem
+public_key.pem
