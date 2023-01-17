@@ -1,6 +1,7 @@
 import random
 import string
 from passlib.context import CryptContext
+from ua_parser import user_agent_parser
 from fastapi import Request
 from geopy.geocoders import Nominatim
 from requests import get
@@ -26,8 +27,11 @@ def extract_device_info(request: Request):
     """
     Extract device information from request headers
     """
-    user_agent = request.headers.get("User-Agent")
+    ua_string = request.headers.get("User-Agent")
     language = request.headers.get("Accept-Language")
+    user_agent = user_agent_parser.Parse(ua_string)
+    device = user_agent['device']
+    device_name = device['family']
     
     # Get client's IP address
     ip_address = get('https://api.ipify.org').text
@@ -38,5 +42,5 @@ def extract_device_info(request: Request):
     latitude = location.latitude
     longitude = location.longitude
     
-    device = {"user_agent": user_agent, "language": language, "latitude": latitude, "longitude": longitude}
+    device = {"user_agent": user_agent, "language": language, "latitude": latitude, "longitude": longitude, "device_name": device_name}
     return device

@@ -78,12 +78,11 @@ def login(payload: schemas.LoginUserSchema, request: Request, response: Response
 
     # Extract device information from request headers or user agent
     device_info = utils.extract_device_info(request)
-    devices = [] 
 
-    # Append device information to user's devices list
-    devices.append(device_info)
-    User.find_one_and_update(
-        {"_id": db_user["_id"]}, {"$push": {"device": {"$each": devices}}}, upsert=True)
+    # Check if the device is already in the database
+    if not User.find_one({"_id": db_user["_id"], "device.user_agent": device_info["user_agent"]}):
+        User.find_one_and_update(
+            {"_id": db_user["_id"]}, {"$push": {"device": {"$each": [device_info]}}}, upsert=True)
 
     # Create access token
     access_token = Authorize.create_access_token(
