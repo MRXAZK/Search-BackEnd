@@ -58,7 +58,7 @@ async def create_user(payload: schemas.CreateUserSchema, request: Request):
 
 
 @router.post('/login')
-def login(payload: schemas.LoginUserSchema, response: Response, Authorize: AuthJWT = Depends()):
+def login(payload: schemas.LoginUserSchema, request: Request, response: Response, Authorize: AuthJWT = Depends()):
     # Check if the user exist
     db_user = User.find_one({'email': payload.email.lower()})
     if not db_user:
@@ -76,6 +76,15 @@ def login(payload: schemas.LoginUserSchema, response: Response, Authorize: AuthJ
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail='Incorrect Email or Password')
 
+    # Extract device information from request headers or user agent
+    device_info = utils.extract_device_info(request)
+    devices = [] 
+
+    # Append device information to user's devices list
+    devices.append(device_info)
+    User.find_one_and_update(
+        {"_id": db_user["_id"]}, {"$push": {"device": {"$each": devices}}}, upsert=True)
+
     # Create access token
     access_token = Authorize.create_access_token(
         subject=str(user["id"]), expires_time=timedelta(minutes=ACCESS_TOKEN_EXPIRES_IN))
@@ -83,6 +92,7 @@ def login(payload: schemas.LoginUserSchema, response: Response, Authorize: AuthJ
     # Create refresh token
     refresh_token = Authorize.create_refresh_token(
         subject=str(user["id"]), expires_time=timedelta(minutes=REFRESH_TOKEN_EXPIRES_IN))
+
 
     # Store refresh and access tokens in cookie
     response.set_cookie('access_token', access_token, ACCESS_TOKEN_EXPIRES_IN * 60,
